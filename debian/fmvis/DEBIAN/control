@@ -1,0 +1,10 @@
+Package: fmvis
+Version: 2010.07.02
+Section: user/multimedia
+Priority: optional
+Architecture: armel
+Depends: fmradio, n900-fmrx-enabler (>= 1.5), python2.5, python-gtk2, python-gobject, python-osso, python-hildon, python-gconf, python-dbus, python-gst0.10, python-setuptools, python-imaging, python-qt4
+Installed-Size: 124
+Maintainer: Pete Redhead <peter.redhead@thisisglobal.com>
+Description: RadioVIS enabled FM Radio, based on the fmradio application by Martin Grimme
+Maemo-Display-Name: RadioVIS FM Radio
