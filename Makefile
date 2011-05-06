@@ -6,7 +6,7 @@ install:
 	
 	mkdir -p ${DESTDIR}/opt/fmvis/
 	cp src/* ${DESTDIR}/opt/fmvis/
-	chmod +x ${DESTDIR}/opt/fmvis/FMVis.py
+	chmod +x ${DESTDIR}/opt/fmvis/Application.py
 
 clean:
 	find . -name "*.pyo" -exec rm "{}" \;
