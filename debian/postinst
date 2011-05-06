@@ -2,6 +2,8 @@
 
 easy_install http://downloads.sourceforge.net/project/pydns/pydns/pydns-2.3.4/pydns-2.3.4.tar.gz
 easy_install http://stomppy.googlecode.com/files/stomp.py-2.0.4.tar.gz
+easy_install isodate
+easy_install iso8601
 
 /usr/bin/gtk-update-icon-cache -f /usr/share/icons/hicolor
 true
