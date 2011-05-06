@@ -1,3 +1,16 @@
+fmvis (2011.05.06) unstable; urgency=low
+
+  Major rewrite of the whole application.
+  Added RadioEPG support.
+  
+ -- Pete Redhead <peter.redhead@thisisglobal.com>  Fri, 06 May 2011 14:48:00 +0100
+
+fmvis (2011.01.11) unstable; urgency=low
+
+  Fixed dependencies
+
+ -- Pete Redhead <peter.redhead@thisisglobal.com>  Mon, 17 Jan 2011 12:00:00 +0000
+
 fmvis (2010.07.02) unstable; urgency=low
 
   Initial release
