@@ -117,8 +117,8 @@ class RadioEPG(QObject):
         self.ui.schedule_list.clear()
         self.programmes = programmes
         for programme in programmes:
-            start_time = iso8601.parse_date(str(programme[QtCore.QString(u'startTime')]))
-            line = "%s\t%s" % (start_time.strftime("%H:%M"), programme[QtCore.QString(u'mediumName')])
+            start_time = iso8601.parse_date(str(programme['startTime']))
+            line = "%s\t%s" % (start_time.strftime("%H:%M"), programme['mediumName'])
             self.ui.schedule_list.addItem(line)
     
     def epg_fail(self):
@@ -131,10 +131,10 @@ class RadioEPG(QObject):
         """
         pos = self.ui.schedule_list.indexFromItem(item).row()
         programme = self.programmes[pos]
-        title = programme[QtCore.QString(u'longName')]
-        desc = programme[QtCore.QString(u'description')]
-        start_time = iso8601.parse_date(str(programme[QtCore.QString(u'startTime')]))
-        duration = isodate.parse_duration(str(programme[QtCore.QString(u'duration')]))
+        title = programme['longName']
+        desc = programme['description']
+        start_time = iso8601.parse_date(str(programme['startTime']))
+        duration = isodate.parse_duration(str(programme['duration']))
         end_time = start_time + duration
         time_slot = "%s - %s" % (start_time.strftime("%H:%M"), end_time.strftime("%H:%M"))
         msg = "%s\n%s\n\n%s" % (title, time_slot, desc)
