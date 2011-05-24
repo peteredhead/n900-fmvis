@@ -1,3 +1,9 @@
+fmvis (2011.05.24) unstable; urgency=low
+
+  Improved compatibility for PR1.3
+  
+ -- Pete Redhead <peter.redhead@thisisglobal.com>  Tue, 24 May 2011 15:27:00 +0100
+
 fmvis (2011.05.06) unstable; urgency=low
 
   Major rewrite of the whole application.

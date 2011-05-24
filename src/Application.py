@@ -26,12 +26,6 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from PyQt4.QtCore import pyqtSignal
 
-from Radio import Radio
-from RadioDNS import RadioDNS, RadioDNSException
-from RadioVIS import RadioVIS
-from RadioEPG import RadioEPG
-from Interface import *
-
 class MainWindow(QMainWindow):
     def __init__(self):        
         QMainWindow.__init__(self,None) 
@@ -344,6 +338,13 @@ class PIChangeWorker(QThread):
                    
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    from Radio import Radio
+    from RadioDNS import RadioDNS, RadioDNSException
+    from RadioVIS import RadioVIS
+    from RadioEPG import RadioEPG
+    from Interface import *
+        
     QCoreApplication.setOrganizationName("Global Radio");
     QCoreApplication.setOrganizationDomain("http://www.thisisglobal.com");
     QCoreApplication.setApplicationName("RadioDNS FM");
