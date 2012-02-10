@@ -21,9 +21,11 @@ sys.path.append("/opt/fmradio/components/fmradio")
 
 from PyQt4.QtCore import QObject, pyqtSignal, QThread
 
-from FMRadio import FMRadio, FMRadioUnavailableError
-from SoundPipe import SoundPipe
+from pyFMRadio.FMRadio import FMRadio, FMRadioUnavailableError
 
+from Mixer import Mixer
+        
+RSSI_THRESHOLD = -105
         
 class Radio(QObject):
     """
@@ -34,22 +36,28 @@ class Radio(QObject):
     ps_change = pyqtSignal(str, name="ps_change")
     scan_done = pyqtSignal(name = "scan_done")
     
-    def __init__(self):
+    def __init__(self, delay):
         QObject.__init__(self, parent = None)
-        self.__keep_alive = KeepAliveWorker()
+        self.__keep_alive = KeepAliveWorker(self)
+        self.mixer = Mixer(delay)
         self.__radio = None
-        self.__sound_pipe = SoundPipe()
-        
         self.__current_pi = None
         self.__current_ps = None
         self.__pi_array = []
         self.__ps_array = []
         
+        self.use_fm = True
+        self.lock_to_fm = True
+        self.rssi = -120
+             
+        self.mixer.delay_ready.connect(self.allow_source_switching)
+        
         self.__scan_worker = ScanWorker(self)
-        self.__station_watcher = StationWatcher(self)
+        self.station_watcher = StationWatcher(self)
         self.rds_worker = RDSWorker(self)
         
-        self.__station_watcher.debug.connect(self.debugger)
+        
+        self.station_watcher.debug.connect(self.debugger)
         self.rds_worker.debug.connect(self.debugger)
         self.__scan_worker.debug.connect(self.debugger)
         
@@ -67,7 +75,7 @@ class Radio(QObject):
         """
         self.__keep_alive.ping()
         try:
-            self.__radio = FMRadio(device="RX-51")
+            self.__radio = FMRadio()
         except FMRadioUnavailableError:
             print "Unable to detect an FM Radio."
             sys.exit(1)
@@ -78,18 +86,17 @@ class Radio(QObject):
         self.low = low / 1000
         self.high = high / 1000
         
-        self.debug.emit("Starting soundpipe")
-        
-        # Route audio to the headphones.
-        self.__sound_pipe.on()
-        self.__sound_pipe.use_speaker(False)
-        self.__sound_pipe.set_speaker_volume(50)
-        
+        self.__keep_alive.start()
+            
     def disable(self):
         """
         Turns off the FM Radio.
         """
-        self.__sound_pipe.off()
+        self.mixer.stop()
+        self.rds_worker.stop()
+        self.__keep_alive.quit()
+        self.debugger("Stopping Radio")
+#        self.__radio.set_frequency(0)
         self.__radio.close()
         self.__radio = None
         
@@ -97,10 +104,12 @@ class Radio(QObject):
         """
         Tune the radio to a particular frequency
         """
+        self.mixer.live_audio()
+        freq = "%2f" % float(freq)
         self.debug.emit("Tuning to %s" % freq)
         self.set_frequency(freq)
         self.debug.emit("Returned from set freq")
-        self.__station_watcher.start()
+        self.station_watcher.start()
         
     def get_high_frequency(self):
         """
@@ -119,31 +128,50 @@ class Radio(QObject):
         Tunes to a specific frequency.
         """
         self.debug.emit("Setting freq to %s" % freq)
-        self.__station_watcher.stop()
+        self.station_watcher.stop()
         self.rds_worker.stop()
-        if freq < self.low or freq > self.high: freq = self.low
-        self.__radio.set_frequency(freq * 1000)
+        if float(freq) < float(self.low) or float(freq) > float(self.high): freq = 87.5
+        self.debug.emit("Freq is %s" % int(float(freq) * 1000))
+        self.lock_to_fm = True
+        self.use_fm = True
+        self.__radio.set_frequency(int(float(freq) * 1000))
         return
         
     def get_frequency(self):
         """
         Returns the currently tuned frequency
         """
-        freq = self.__radio.get_frequency() / 1000.0
+        freq = int(self.__radio.get_frequency()) / 1000.0
         return freq
         
     def get_volume(self):
+        """
+        Gets the current volume level
+        """
         return self.__radio.get_volume()
         
     def set_volume(self, left, right):
+        """
+        Sets the current volume level
+        """
         self.__radio.set_volume(left, right)
         
     def station_found(self):
         """
         Returns true if a station is detected on the current frequency.    
         """
-        self.debug.emit("station_found - %s" % self.__radio.is_signal_good())
-        return self.__radio.is_signal_good()
+#        if self.__radio.is_signal_good():
+#        if self.rssi > RSSI_THRESHOLD:
+#            self.debug.emit("Station found - switching to delayed audio")
+#            self.lock_to_fm = False
+#            self.mixer.delay_audio()
+#        self.debug.emit("station_found - %s" % self.__radio.is_signal_good())
+
+#        return self.__radio.is_signal_good()
+        if self.rssi > RSSI_THRESHOLD:
+            return True
+        else:
+            return False
     
     def scan_next(self):
         """
@@ -166,7 +194,10 @@ class Radio(QObject):
         """
         Gets the RDS information for the current station.
         """
-        pi, ps, rt = self.__radio.get_rds()
+        pi = open("/sys/class/i2c-adapter/i2c-3/3-0022/rds_pi", "r").read()
+        ps = open("/sys/class/i2c-adapter/i2c-3/3-0022/rds_ps", "r").read()
+        rt = open("/sys/class/i2c-adapter/i2c-3/3-0022/rds_rt", "r").read()
+        
         rds = {}
         pi = pi.strip()
         ps = ps.strip()
@@ -186,10 +217,7 @@ class Radio(QObject):
             rds['rt'] = rt
         else:
             rds['rt'] = None
-        
-#        self.debug.emit("pi: %s" % pi)
-#        self.debug.emit("ps: %s" % ps)
-#        self.debug.emit("rt: %s" % rt) 
+
         return rds
     
     def pi_found(self, new_pi):
@@ -204,6 +232,13 @@ class Radio(QObject):
         """
         self.ps_change.emit(new_ps)
     
+    
+    def allow_source_switching(self):
+        """
+        Removes source locking
+        """
+        self.lock_to_fm = False
+        
 class ScanWorker(QThread):
     """
     Threaded class to scan the FM band.
@@ -261,15 +296,17 @@ class StationWatcher(QThread):
               
     def run(self):
         self.exiting = False
-        self.debug.emit("Station watcher start")
+        self.debug.emit("Station watcher thread started")
         self.__retuned = False
         found = self.__radio.station_found()
-        self.debug.emit("Station watcher: found = %s" % found)
+#        self.debug.emit("Station watcher: found = %s" % found)
         while found == False and self.__retuned == False:
             QThread.sleep(3)
             found = self.__radio.station_found()
-            self.debug.emit("Station watcher: found = %s" % found)
+            if found: self.debug.emit("Station watcher: found = %s" % found)
 #        self.__radio.rds_worker.stop()
+        
+#        self.__radio.mixer.delay_audio()
         self.__radio.rds_worker.start()
     
     def stop(self):
@@ -310,6 +347,50 @@ class RDSWorker(QThread):
             
     def stop(self):
         self.exiting = True
+      
+class RSSIWorker(QThread):
+    """
+    Monitors the received FM signal strength
+    """
+    rssi_updated = pyqtSignal(int, name="rssi_updated")
+    fm_signal_good = pyqtSignal(name="fm_signal_good")
+    fm_signal_bad = pyqtSignal(name="fm_signal_bad")
+    debug = pyqtSignal(str, name="debug")
+    
+    def __init__(self, set_point_low, set_point_high, parent = None):
+        QThread.__init__(self, parent = None)
+        self.buffer_size = 3
+        self.buffer = []
+        self.set_point_high = set_point_high
+        self.set_point_low = set_point_low
+        self.exiting = False
+        
+    def __del__(self):
+        self.debug("RSSIWorker Stopping")
+        self.exiting = True
+        self.wait()
+        
+    def run(self):
+        self.exiting = False
+        self.debug.emit("RSSIWorker Started")
+        while self.exiting == False:
+            rssi = open("/sys/class/i2c-adapter/i2c-3/3-0022/fm_rssi", "r").read()
+#            self.rssi_updated.emit(int(rssi))
+            try:
+                self.buffer.append(int(rssi))
+                if len(self.buffer) > 3:
+                    self.buffer.pop(0)
+                    average = float(sum(self.buffer)) / len(self.buffer)
+                    self.rssi_updated.emit(int(average))
+                    if average > self.set_point_high:
+                        self.fm_signal_good.emit()
+                    elif average < self.set_point_low:
+                        self.fm_signal_bad.emit()
+            except Exception, err:
+                pass
+                
+            QThread.sleep(1)
+        
                       
 class KeepAliveWorker(QThread):
     """
@@ -328,9 +409,10 @@ class KeepAliveWorker(QThread):
         self.wait()
         
     def run(self):
-        self.enabler.request()
-        QThread.sleep(14)
+        while not self.exiting:
+            self.enabler.request()
+            QThread.sleep(8)
         
     def ping(self):
-        self.enabler.request()          
-                    
+        self.enabler.request()    
+        

@@ -18,7 +18,7 @@
 #
 from PyQt4 import *
 from PyQt4.QtCore import *
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import QThread, QObject, pyqtSignal
 from PyQt4.QtGui import *
 
 # THE FOLLOW TWO MODULES NED ADDING TO POSTINST
@@ -54,19 +54,30 @@ class RadioEPG(QObject):
         self.debug.emit(msg)    
         
     def display(self):
+        """
+        Display the EPG UI
+        """
         self.ui.show()
         if self.schedule_date is None:
             self.today()
         
     def set_server(self, server):
+        """
+        Set the EPG server
+        """
         self.baseurl = "http://%s%s" % (server, self.path)
         
-    def set_station(self, ecc, pi, freq):
+    def set_station_fm(self, ecc, pi, freq):
         """
-        Set the station parameters for which EPG is to be retrieved
-        
+        Set the station FM parameters for which EPG is to be retrieved
         """
         self.path = "/fm/%s/%s/%05d" % (ecc, pi, freq * 100)
+    
+    def set_station_ip(self, id):
+        """
+        Set the station IP parameters for which EPG is to be retrieved
+        """
+        self.baseurl = "/ip/%s" % id
     
     def today(self):
         """
@@ -113,15 +124,19 @@ class RadioEPG(QObject):
         """
         Once EPG data is loaded, display on device
         """
-        self.debug.emit("Call back to disaply_epg")
+        self.debug.emit("Call back to display_epg")
         self.ui.schedule_list.clear()
         self.programmes = programmes
         for programme in programmes:
             start_time = iso8601.parse_date(str(programme['startTime']))
+            if start_time.day != self.schedule_date.day: continue
             line = "%s\t%s" % (start_time.strftime("%H:%M"), programme['mediumName'])
             self.ui.schedule_list.addItem(line)
     
     def epg_fail(self):
+        """
+        Triggered when the EPG XML fails to load
+        """
         self.ui.schedule_list.clear()
         self.ui.schedule_list.addItem("Unable to obtain EPG data.")
     
@@ -141,14 +156,14 @@ class RadioEPG(QObject):
         self.show_dialog.display(msg)  
     
 class EPGParser(QThread):
+    """
+    Threaded class to download and parse EPG XML
+    """
     
     debug = pyqtSignal(str, name="debug")
     epg_ready = pyqtSignal(list, name="epg_ready")
     epg_error = pyqtSignal(name="epg_error")
     
-    """
-    Threaded class to download and parse EPG XML
-    """
     def __init__(self):
         QThread.__init__(self, parent = None)
         self.__url = None
@@ -182,6 +197,97 @@ class EPGParser(QThread):
         except:
             self.epg_error.emit()
  
+class XSI(QObject):
+    """
+    Class to get alternative sources for the specifed station)\
+    """
+    
+    debug = pyqtSignal(str, name="debug")
+    
+    def __init__(self):
+        QObject.__init__(self, parent = None)
+#        self.xsi_location = "http://luigi.thisisglobal.com/epg_min.xml"
+        self.xsi_location = None
+        self.xsi_parser = XSIParser()
+        self.xsi_parser.debug.connect(self.debugger)
+        
+    def set_server(self, server):
+        self.xsi_location = "http://%s/radiodns/epg/XSI.xml" % server
+        
+    def lookup_stream_from_fm(self, ecc, pi, freq):
+        """
+        Uses FM bearers to find a stream
+        """
+        if self.xsi_location == None: return
+        self.xsi_parser.set_url(self.xsi_location)
+        self.xsi_parser.set_fm_bearer(ecc, pi, freq)
+        self.debug.emit("Starting XSI Parser")
+        self.xsi_parser.start()
+        self.debug.emit("XSI parser running")
+        
+    def debugger(self, msg):
+        self.debug.emit(msg)  
+    
+class XSIParser(QThread):
+    """
+    Threaded class to download and parse XSI
+    """
+    
+    stream_url_found = pyqtSignal(str, str, str, str, name="stream_url_found")
+    debug = pyqtSignal(str, name="debug")
+    
+    def __init__(self):
+        QThread.__init__(self, parent = None)
+        self.__url = None
+        self.exiting = False
+        
+    def __del__(self):
+        self.exiting = True
+        self.wait()
+        
+    def set_url(self, url):
+        self.__url = url
+    
+    def set_fm_bearer(self, ecc, pi, freq):
+        self.fm_bearer = "fm:%s.%s.%05d" % (ecc, pi, freq * 100)
+        self.debug.emit("Searching XSI for bearer: %s" % self.fm_bearer)
+        
+    def run(self):
+        self.exiting = False
+        if not self.__url: return 
+        if not self.fm_bearer: return
+        
+        try:
+            request = urllib2.Request(self.__url)
+            self.debug.emit("Loading %s" % self.__url)
+            response = urllib2.urlopen(request)
+            xml = response.read()
+            self.dom = parseString(xml)
+            stream_url = None
+            id = None
+            shortname = None
+            fqdn = None
+            matching_bearers = [node for node in self.dom.getElementsByTagName("serviceID")  if node.attributes['id'].value == self.fm_bearer]
+            for b in matching_bearers:
+                service =  b.parentNode
+            
+            try: 
+                shortname = service.getElementsByTagName("epg:shortName")[0].firstChild.nodeValue.strip()                
+            except Exception, err:
+                self.debug.emit("%s" % err)
+                # No shortname available
+                pass
+            try:
+                fqdn = service.getElementsByTagName("radiodns")[0].getAttribute("fqdn")
+                id = service.getElementsByTagName("radiodns")[0].getAttribute("serviceIdentifier")
+            except Exception, err:
+                # No fqdn available
+                pass
+            ip_bearers = [node for node in service.getElementsByTagName("serviceID") if node.getAttribute('mime') == "audio/mpeg"]
+            for ip_bearer in ip_bearers:
+                if ip_bearer.attributes['id'].value.find('http://') >= 0: stream_url = ip_bearer.attributes['id'].value
+            if stream_url is not None: self.stream_url_found.emit(stream_url, shortname, fqdn, id)
+        except Exception, err:
+            self.debug.emit("%s" % err)
+        
  
-    
-    

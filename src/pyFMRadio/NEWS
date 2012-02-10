@@ -1,0 +1,14 @@
+New in 0.22:
+- Scanning for stations can be aborted
+
+New in 0.21:
+- FM band selection (requires kernel driver patch)
+- forward and backward scanning
+
+New in 0.201:
+- experimental (untested) support for FM band selection
+
+New in 0.20:
+- FM tuner chip is correctly powered down when closing the device
+- current signal strength can be retrieved
+- automatic scanning for radio stations has been implemented

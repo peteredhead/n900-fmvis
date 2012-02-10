@@ -2,11 +2,11 @@ Source: fmvis
 Section: user/multimedia
 Priority: optional
 Maintainer: Pete Redhead <peter.redhead@thisisglobal.com>
-Build-Depends: cdbs, cdbs, debhelper (>= 5), python2.5-minimal
+Build-Depends: cdbs, debhelper (>= 5), python2.5-minimal
 Standards-Version: 3.7.2
 
 Package: fmvis
 Architecture: armel
-Depends: fmradio, n900-fmrx-enabler (>=1.5), python2.5, python-gtk2, python-gobject, python-osso, python-hildon, python-gconf, python-dbus, python-gst0.10, python-setuptools, python-imaging, python2.5-qt4
-Description: RadioVIS enabled FM Radio, based on the fmradio application by Martin Grimme
+Depends: n900-fmrx-enabler (>=1.5), gstreamer-tools, gstreamer0.10-plugins-good, python2.5, python-gtk2, python-gobject, python-osso, python-hildon, python-gconf, python-dbus, python-gst0.10, python-setuptools, python-imaging, python2.5-qt4 | python-qt4
+Description: RadioVIS enabled FM Radio
 XB-Maemo-Display-Name: RadioVIS FM Radio

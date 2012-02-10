@@ -5,7 +5,7 @@ install:
 	cp maemo/fmvis.png ${DESTDIR}/usr/share/icons/hicolor/scalable/apps/
 	
 	mkdir -p ${DESTDIR}/opt/fmvis/
-	cp src/* ${DESTDIR}/opt/fmvis/
+	cp -r src/* ${DESTDIR}/opt/fmvis/
 	chmod +x ${DESTDIR}/opt/fmvis/Application.py
 
 clean:

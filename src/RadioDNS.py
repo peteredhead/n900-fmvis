@@ -58,6 +58,9 @@ class RadioDNS(QObject):
         self.msg.emit("Result from RadioDNS: %s" % self.__fqdn)
         return cname
     
+    def set_fqdn(self, fqdn):
+        self.__fqdn = fqdn
+    
     def resolve_application(self, application):
         """
         SRV lookup on domain.

@@ -38,11 +38,17 @@ class RadioVIS(stomp.ConnectionListener, QObject):
         self.__base_topic = None
         self.__subscribed = False
         
-    def set_station(self, ecc, pi, freq):
+    def set_station_fm(self, ecc, pi, freq):
         """
         Set the station parameters (country code, pi code and frequency).
         """
         self.__base_topic = "/topic/fm/%s/%s/%05d" % (ecc, pi, freq*100)
+    
+    def set_station_ip(self, id):
+        """
+        Set the station parameters (RadioEPG id)
+        """
+        self.__base_topic = "/topic/ip/%s" % id
     
     def connect(self, host, port):
         """

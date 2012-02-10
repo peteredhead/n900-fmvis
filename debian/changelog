@@ -1,3 +1,20 @@
+fmvis (2011.08.25) unstable; urgency=low
+
+  Check match between preset PI and received PI
+  Fixed bug with shortname not being written to preset
+
+ -- Pete Redhead <peter.redhead@thisisglobal.com>  Thu, 25 Aug 2011 11:21:16 +0100
+
+fmvis (2011.08.09) unstable; urgency=low
+
+  Removed dependency for fmradio application
+  Added dependency for fmrx-enabler
+  Added pyFMRadio library
+  Changed control file - now depends on either python2.5-qt4 or python-qt4
+  Added hybrid radio support
+
+ -- Pete Redhead <peter.redhead@thisisglobal.com>  Tue, 09 Aug 2011 09:49:12 +0100
+
 fmvis (2011.05.24) unstable; urgency=low
 
   Improved compatibility for PR1.3

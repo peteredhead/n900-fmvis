@@ -18,6 +18,7 @@
 #
 from PyQt4 import *
 from PyQt4 import QtGui
+from PyQt4.Qt import *
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from PyQt4.QtNetwork import QHttp
@@ -42,6 +43,8 @@ class Interface(QObject):
     """
     The main application UI.
     """
+    closing = pyqtSignal(name="closing")
+    
     def __init__(self):
         super(Interface, self).__init__()
         
@@ -75,12 +78,42 @@ class Interface(QObject):
         self.radioepg_button.setDisabled(True)
         
         self.vis_text = QtGui.QLabel(self.main_window)
-        self.vis_text.setGeometry(QtCore.QRect(501, 65, 281, 191))
+        self.vis_text.setGeometry(QtCore.QRect(501, 85, 281, 171))
         self.vis_text.setWordWrap(True)
         self.vis_text.setObjectName("vis_text")
         
+        icon_font = QtGui.QFont("Sans Serif", 14, QFont.Bold)
+        
+        self.ip_text = QtGui.QLabel(self.main_window)
+        self.ip_text.setFont(icon_font)
+        self.ip_text.setGeometry(QtCore.QRect(750, 10, 42, 32))
+        self.ip_text.setObjectName("ip_text")
+        self.ip_text.setAlignment(Qt.AlignCenter)
+        self.ip_text.setStyleSheet("background-color: #999999; color: #000000")
+        self.ip_text.setText("IP")
+        
+        self.fm_text = QtGui.QLabel(self.main_window)
+        self.fm_text.setFont(icon_font)
+        self.fm_text.setGeometry(QtCore.QRect(700, 10, 42, 32))
+        self.fm_text.setObjectName("fm_text")
+        self.fm_text.setAlignment(Qt.AlignCenter)
+        self.fm_text.setStyleSheet("background-color: #999999; color: #000000")
+        self.fm_text.setText("FM")        
+
+        self.rssi_text = QtGui.QLabel(self.main_window)
+        self.rssi_text.setFont(icon_font)
+        self.rssi_text.setGeometry(QtCore.QRect(536, 15, 130, 20))
+        self.rssi_text.setAlignment(Qt.AlignVCenter)
+        self.rssi_text.setObjectName("rssi_text")
+        self.rssi_text.setText("FM RSSI: ")
+        self.rssi_text.setStyleSheet("color: #cecece")
+        
+        name_font = QtGui.QFont()
+        name_font.setBold(True)
+        
         self.ps_label = QtGui.QLabel(self.main_window)
-        self.ps_label.setGeometry(500, 29, 281, 31)
+        self.ps_label.setFont(name_font)
+        self.ps_label.setGeometry(500, 50, 281, 31)
         self.ps_label.setAlignment(QtCore.Qt.AlignCenter)
         self.ps_label.setObjectName("ps_label")
   
@@ -117,13 +150,12 @@ class Interface(QObject):
 
         self.menu_file.addAction(self.menu_set_country)
         self.menubar.addAction(self.menu_file.menuAction())
-        
-        self.menu_exit = QAction('&Exit', self)
-        self.menu_exit.setStatusTip('Exits the application')
 
-        self.menu_file.addAction(self.menu_exit)
+        self.menu_hybrid = QAction('&Hybrid Settings', self)
+        self.menu_hybrid.setStatusTip('Settings for hybrid radio')
+
+        self.menu_file.addAction(self.menu_hybrid)
         self.menubar.addAction(self.menu_file.menuAction())
-        
         
         # Create HTTP handler for loading vis slides
         self.http = QHttp()
@@ -159,6 +191,12 @@ class Interface(QObject):
         self.link = QUrl(link)
         self.http.setHost(url.host())
         self.http.get(url.path())
+     
+    def update_rssi(self, text):
+        """
+        Updated the RSSI
+        """
+        self.rssi_text.setText("FM RSSI: %s " % text)
         
     def display_slide(self, status):
         """
@@ -194,7 +232,7 @@ class Interface(QObject):
             if settings.contains("preset%ititle" % i):
                 self.presets[i-1].setText(settings.value("preset%ititle" % i).toString())
         return
-        
+             
 class FrequencyDialogue(QtGui.QDialog):
     
     """
@@ -283,8 +321,8 @@ class FrequencyDialogue(QtGui.QDialog):
         """
         Sets the slider position and frequency label.
         """
-        self.freq_slider.setValue(freq*10)
-        self.freq_label.setText(str(freq))
+        self.freq_slider.setValue(float(freq)*10)
+        self.freq_label.setText(freq)
         
 class PresetDialog(QtGui.QMessageBox):
     """
@@ -296,19 +334,23 @@ class PresetDialog(QtGui.QMessageBox):
         QtGui.QMessageBox.__init__(self)
         self.presets = []
         self.settings = settings
+        self.rendered = False
     
     def prompt(self):
-        self.setWindowTitle("Store Station")
-        self.setText("Please select a preset to replace")
-        self.setOrientation(Qt.Vertical)
-        for i in range (0,5):
-            if self.settings.contains("preset%ititle" % (i+1)):
-                label = self.settings.value("preset%ititle" % (i+1)).toString()
-            else:
-                label = "Preset %i" % (i+1)
-            self.presets.insert(i,QtGui.QPushButton(label))
-            self.addButton(self.presets[i], QtGui.QMessageBox.ActionRole)       
-        self.addButton(QtGui.QMessageBox.Cancel)
+        if not self.rendered:
+            self.setWindowTitle("Store Station")
+            self.setText("Please select a preset to replace")
+            self.setOrientation(Qt.Vertical)
+            for i in range (0,5):
+                if self.settings.contains("preset%ititle" % (i+1)):
+                    label = self.settings.value("preset%ititle" % (i+1)).toString()
+                else:
+                    label = "Preset %i" % (i+1)
+                self.presets.insert(i,QtGui.QPushButton(label))
+                self.addButton(self.presets[i], QtGui.QMessageBox.ActionRole)
+                self.addButton(QtGui.QMessageBox.Cancel)
+                self.rendered = True       
+        
         QtGui.QMessageBox.exec_(self)     
         try:
             self.presetNumber = int(self.presets.index(self.clickedButton())+1)
@@ -394,3 +436,33 @@ class EPGShowDialog(QtGui.QMessageBox):
         self.setText(msg)
         QtGui.QMessageBox.exec_(self)        
 
+class HybridDialog(QtGui.QDialog):
+    """
+    Displays the Hyrbid Radio settings window
+    """
+    
+    hybrid_settings_updated = pyqtSignal(bool, int, int, float, name="hybrid_settings_updated")
+    
+    def __init__(self, parent=None):
+        QtGui.QDialog.__init__(self, parent = None)
+        
+        self.setWindowTitle("Hybrid Radio Settings")
+        self.layoutWidget = QtGui.QWidget(self)
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 10, 780, 331))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.formLayout = QtGui.QFormLayout(self.layoutWidget)
+        self.enabled_checkbox = QtGui.QCheckBox()
+        self.rssi_min_input = QtGui.QLineEdit()
+        self.rssi_max_input = QtGui.QLineEdit()
+        self.delay_input = QtGui.QLineEdit()
+        self.save_button = QtGui.QPushButton("Save")
+        self.formLayout.addRow("Enabled", self.enabled_checkbox)
+        self.formLayout.addRow("RSSI Low Setpoint", self.rssi_min_input)
+        self.formLayout.addRow("RSSI High Setpoint", self.rssi_max_input)
+        self.formLayout.addRow("Delay (s)", self.delay_input)
+        self.formLayout.addRow(self.save_button)
+        self.save_button.released.connect(self.save_settings)
+        
+    def save_settings(self):
+        self.hybrid_settings_updated.emit(self.enabled_checkbox.isChecked(), int(self.rssi_min_input.text()), int(self.rssi_max_input.text()), float(self.delay_input.text()))
+ 

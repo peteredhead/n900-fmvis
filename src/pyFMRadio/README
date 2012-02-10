@@ -1,0 +1,14 @@
+pyFMRadio
+=========
+
+pyFMRadio is a pure Python module for controlling the built-in FM radio on the
+Nokia N800 internet tablet. It doesn't have any dependencies except the Python
+standard modules.
+
+See example.py for a simple example.
+  
+Have fun and use pyFMRadio to create great radio applications for the N800! :)
+
+
+---
+Martin Grimme  <martin.grimme _AT_ lintegra.de>
