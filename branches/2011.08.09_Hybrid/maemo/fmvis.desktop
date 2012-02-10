@@ -1,0 +1,9 @@
+[Desktop Entry]
+ Encoding=UTF-8
+ Version=0.1
+ Type=Application
+ Name=RadioDNS FM
+ Exec=/usr/bin/FMVis
+ Icon=fmvis
+ X-HildonDesk-ShowInToolbar=true
+ X-Osso-Type=application/x-executable

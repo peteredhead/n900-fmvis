@@ -1,0 +1,47 @@
+2008-02-19  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py: Scanning for stations can now be aborted.
+
+2007-12-08  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py: Added methods for forward and backward seeking.
+
+2007-11-19  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py (FMRadioError): Added base class for FMRadio-related
+	exceptions.
+	(FMRadioOperationNotSupportedError): Added exception for unsupported
+	operations.
+	(FMRadio.set_fm_band): Method raises an FMRadioOperationNotSupported
+	exception if FM band switching is not supported by the driver.
+	(FMRadio.get_fm_band): Added method for retrieving the current FM band.
+	(__all__): It's now safe to say 'from FMRadio import *'.
+
+2007-11-18  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py: Release 0.201
+	
+	* FMRadio.py (FMRadio.set_fm_band): Added experimental support for
+	switching the FM band between US/Europe and Japan. This requires a
+	patched kernel and does not work on Nokia's standard kernel.
+	See also https://bugs.maemo.org/show_bug.cgi?id=2249
+
+2007-11-12  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py: Release 0.20
+
+	* example.py: Added example program.
+
+2007-11-03  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py (FMRadio.close): Power down the FM tuner chip when
+	closing.
+	(FMRadio.set_frequency): Allow to set frequency to 0 as this is the
+	special code for the driver to power down the FM tuner chip.
+	(FMRadio.get_signal_strength): Implemented retrieving the current
+	signal strength.
+	(FMRadio.scan): Implemented method for scanning for stations.
+
+2007-10-31  Martin Grimme  <martin.grimme@lintegra.de>
+
+	* FMRadio.py: Initial release 0.10
